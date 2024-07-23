@@ -1,71 +1,74 @@
-import { Injectable, NotFoundException, Query } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { InjectModel } from '@nestjs/mongoose';
 import { Order } from './entities/order.entity';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class OrdersService {
-  constructor(@InjectModel(Order.name) private readonly orderService:Model<Order>){}
- async create(createOrderDto: CreateOrderDto) {
-    return await new this.orderService(createOrderDto).save();
+  constructor(@InjectRepository(Order) private readonly orderRepository: Repository<Order>) { }
+
+  async create(createOrderDto: CreateOrderDto) {
+    try {
+      const order = this.orderRepository.create(createOrderDto);
+      return await this.orderRepository.save(order);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create order');
+    }
   }
 
-  async findAll({page,limit}:{page:number;limit:number}) {
+  async findAll({ page, limit }: { page: number; limit: number }) {
     try {
-      const result=await this.orderService
-      .find()
-      .skip((page-1)*limit)
-      .limit(limit)
-      .exec();
-  
-      const total=await this.orderService.countDocuments();
+      const [data, count] = await this.orderRepository.findAndCount({
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
       return {
-        data:result,
-        count:total,
-        currentPage:page,
-        totalPages:Math.ceil(total/limit)
-      }
+        data,
+        count,
+        currentPage: page,
+        totalPages: Math.ceil(count / limit),
+      };
     } catch (error) {
-      throw new error.message
-    }
-
-  }
-
-  async findOne(id: string) {
-    try {
-      const order= this.orderService.findById(id);
-      if (!order){
-        throw new NotFoundException()
-      }
-      return order
-    } catch (error) {
-      throw new error.message
+      throw new InternalServerErrorException('Failed to fetch orders');
     }
   }
 
-  async update(id: string, updateOrderDto: UpdateOrderDto) {
-   try {
-     const order=await this.orderService.findById(id)
-     if(!order){
-       throw new NotFoundException()
-     }
-     return order.updateOne(updateOrderDto)
-   } catch (error) {
-     throw new error.message
-   }
-  }
-
-  async remove(id: string) {
+  async findOne(id: number) {
     try {
-      const order = await this.orderService.findById(id)
+      const order = await this.orderRepository.findOne({where:{id}});
       if (!order) {
-        throw new NotFoundException()
+        throw new NotFoundException('Order not found');
       }
-      return order.deleteOne()
+      return order;
     } catch (error) {
-      throw new error.message
+      throw new InternalServerErrorException('Failed to fetch order');
+    }
+  }
+
+  async update(id: number, updateOrderDto: UpdateOrderDto) {
+    try {
+      const order = await this.orderRepository.preload({
+        id: +id,
+        ...updateOrderDto,
+      });
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+      return await this.orderRepository.save(order);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update order');
+    }
+  }
+
+  async remove(id: number) {
+    try {
+      const order = await this.findOne(id);
+      return await this.orderRepository.remove(order);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to delete order');
     }
   }
 }

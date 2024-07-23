@@ -4,9 +4,7 @@ import { CreateLoginDto } from '../user/dto/login-user.dto ';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenService } from '../token/token.service';
-import { OtpService } from 'src/otp/otp.service';
-
-
+import { OtpService } from '../otp/otp.service';
 
 @Injectable()
 export class AuthService {
@@ -14,23 +12,22 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    private readonly refreshService: RefreshTokenService
+    private readonly refreshService: RefreshTokenService,
   ) { }
 
-  
   async signup(createRegisterDto: CreateRegisterDto) {
     return await this.userService.register(createRegisterDto);
   }
 
-  async verify(userId: string | any, otp: string) {
+  async verify(userId: number, otp: string) {
     await this.otpService.verifyOtp(userId, otp);
     await this.userService.updateStatus(userId, 'active');
   }
 
-  async signIn(createLoginDto: CreateLoginDto): Promise<{ accessToken: string, refreshToken: string }> {
+  async signIn(createLoginDto: CreateLoginDto): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.userService.signin(createLoginDto);
-    const accessTokenSecret = process.env.DATABASE_ACCESS_TOKEN_SECRET;
-    const refreshTokenSecret = process.env.DATABASE_REFRESH_TOKEN_SECRET;
+    const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
 
     if (!accessTokenSecret || !refreshTokenSecret) {
       throw new Error('JWT secret not configured');
@@ -44,20 +41,19 @@ export class AuthService {
 
     return {
       accessToken,
-      refreshToken
+      refreshToken,
     };
   }
 
-  async me(id: string ) {
+  async me(id: number) {
     return await this.userService.findOne(id);
   }
 
-  async logout(userId: string | any) {
+  async logout(userId: number) {
     await this.refreshService.removeTokensForUser(userId);
   }
 
   async refreshAccessToken(refreshToken: string) {
-    console.log(refreshToken);
     return await this.refreshService.refreshAccessToken(refreshToken);
   }
 }

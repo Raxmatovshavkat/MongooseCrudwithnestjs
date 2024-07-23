@@ -1,20 +1,20 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateRegisterDto } from './dto/register-user.dto';
 import { CreateLoginDto } from './dto/login-user.dto ';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as otpGenerator from 'otp-generator';
 import * as bcrypt from 'bcrypt';
-import { EmailService } from '../Mail/mail.service';
-import { OtpService } from 'src/otp/otp.service';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { EmailService } from '../mail/mail.service';
+import { OtpService } from '../otp/otp.service';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectModel(User.name) private readonly userModel:Model<User>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
-    private readonly otpService: OtpService
+    private readonly otpService: OtpService,
   ) { }
 
   async register(createUserDto: CreateRegisterDto) {
@@ -22,16 +22,15 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = otpGenerator.generate(6, { digits: true, alphabets: false, upperCase: false, specialChars: false });
 
-    const user = new this.userModel({
+    const user = this.userRepository.create({
       ...rest,
       email,
       password: hashedPassword,
       status: 'inactive',
     });
 
-
     try {
-      const savedUser = await user.save();
+      const savedUser = await this.userRepository.save(user);
       await this.emailService.sendEmail(email, otp);
       await this.otpService.saveOtp({ userId: savedUser.id, otp });
       return savedUser;
@@ -43,36 +42,35 @@ export class UserService {
 
   async signin(createLoginDto: CreateLoginDto) {
     const { email, password } = createLoginDto;
-    const user = await this.userModel.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException();
     }
     return user;
   }
 
-  async findOne(id: string) {
-    const user = await this.userModel.findById(id);
+  async findOne(id: number) {
+    const user = await this.userRepository.findOne({where:{id}});
     if (!user) {
       throw new NotFoundException();
     }
     return user;
   }
 
-  async logout(id: string) {
-    const user = await this.userModel.findById(id);
+  async logout(id: number | any) {
+    const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException();
     }
-    await user.destroy();
+    await this.userRepository.remove(user);
   }
 
-  async updateStatus(userId: string, status: string): Promise<void> {
+  async updateStatus(userId: number, status: string): Promise<void> {
     const user = await this.findOne(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
     user.status = status;
-    await user.save();
-    
+    await this.userRepository.save(user);
   }
 }

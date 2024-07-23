@@ -1,18 +1,19 @@
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
-import { User, UserSchema } from './entities/user.entity';
+import { User } from './entities/user.entity';
 import { OtpModule } from 'src/otp/otp.module';
-import { MongooseModule } from '@nestjs/mongoose';
 import { MailModule } from 'src/Mail/mail.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { EmailService } from 'src/Mail/mail.service';
 
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{name:User.name,schema:UserSchema}]),
+    TypeOrmModule.forFeature([User]),
     MailModule,
     OtpModule],
   controllers: [],
-  providers: [UserService],
+  providers: [UserService,EmailService],
   exports: [UserService]
 })
 export class UserModule { }

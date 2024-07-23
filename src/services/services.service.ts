@@ -1,17 +1,17 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { InjectModel } from '@nestjs/mongoose';
 import { Service } from './entities/service.entity';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ServicesService {
-  constructor(@InjectModel(Service.name) private readonly serviceModul:Model<Service>){}
- async create(createServiceDto: CreateServiceDto) {
+  constructor(@InjectRepository(Service) private readonly serviceModul: Repository<Service>) { }
+  async create(createServiceDto: CreateServiceDto) {
     try {
-      const service=await new this.serviceModul(createServiceDto).save()
-      return service
+      const service = await this.serviceModul.create({ ...createServiceDto })
+      return this.serviceModul.save(service)
     } catch (error) {
       throw new InternalServerErrorException()
     }
@@ -19,8 +19,8 @@ export class ServicesService {
 
   async findAll() {
     try {
-      const service=await this.serviceModul.find()
-      if(!service){
+      const service = await this.serviceModul.find()
+      if (!service) {
         throw new NotFoundException()
       }
       return service
@@ -29,38 +29,39 @@ export class ServicesService {
     }
   }
 
-  async findOne(id: string ) {
-   try {
-     const service=await this.serviceModul.findById(id)
-     if (!service){
-      throw new NotFoundException()
-     }
-     return service
-   } catch (error) {
-     throw new InternalServerErrorException()
-   }
-
-  }
-
-  async update(id: string , updateServiceDto: UpdateServiceDto) {
+  async findOne(id: number) {
     try {
-      const service = await this.serviceModul.findById(id)
+      const service = await this.serviceModul.findOne({ where: { id } })
       if (!service) {
         throw new NotFoundException()
       }
-      return service.updateOne({$where:{id}})
+      return service
+    } catch (error) {
+      throw new InternalServerErrorException()
+    }
+
+  }
+
+  async update(id: number, updateServiceDto: UpdateServiceDto) {
+    try {
+      const service = await this.serviceModul.findOne({ where: { id } })
+      if (!service) {
+        throw new NotFoundException()
+      }
+      Object.assign(service,updateServiceDto)
+      return this.serviceModul.save(service)
     } catch (error) {
       throw new InternalServerErrorException()
     }
   }
 
-  async remove(id: string ) {
+  async remove(id: number) {
     try {
-      const service = await this.serviceModul.findById(id)
+      const service = await this.serviceModul.findOne({ where: { id } })
       if (!service) {
         throw new NotFoundException()
       }
-      return service.deleteOne()
+      return this.serviceModul.remove(service)
     } catch (error) {
       throw new InternalServerErrorException()
     }
