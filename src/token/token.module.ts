@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { RefreshToken } from './entities/token.entity';
 import { RefreshTokenService } from './token.service';
-import { RefreshToken, RefreshTokenSchema } from './entities/token.entity';
-import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{name:RefreshToken.name,schema:RefreshTokenSchema}])
-   
+    TypeOrmModule.forFeature([RefreshToken]),
+    JwtModule.register({}),
   ],
-  controllers:[],
   providers: [RefreshTokenService],
   exports: [RefreshTokenService],
 })

@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { OtpService } from './otp.service';
-import { Otp, OtpSchema } from './entities/otp.entity';
-import { MongooseModule } from '@nestjs/mongoose';
+import { Otp } from './entities/otp.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 
 
 @Module({
-  imports:[MongooseModule.forFeature([{name:Otp.name,schema:OtpSchema}])],
+  imports:[TypeOrmModule.forFeature([Otp])],
   providers: [OtpService],
   exports:[OtpService]
 })

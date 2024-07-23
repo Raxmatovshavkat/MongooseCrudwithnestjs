@@ -1,17 +1,19 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
+@Entity()
+export class RefreshToken {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-@Schema()
-export class RefreshToken extends Model<RefreshToken> {
-    @Prop()
-    token: string;
-
-    @Prop()
+    @Column()
     userId: number;
 
-    @Prop()
-    expiryDate: Date 
-}
+    @Column()
+    token: string;
 
-export const RefreshTokenSchema = SchemaFactory.createForClass(RefreshToken);
+    @Column()
+    expiryDate: Date;
+
+    @CreateDateColumn()
+    createdAt: Date;
+}

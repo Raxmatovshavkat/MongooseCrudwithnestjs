@@ -4,7 +4,8 @@ import { User } from './entities/user.entity';
 import { OtpModule } from 'src/otp/otp.module';
 import { MailModule } from 'src/Mail/mail.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { EmailService } from 'src/Mail/mail.service';
+import { EmailService } from 'src/mail/mail.service';
+
 
 
 @Module({

@@ -12,7 +12,8 @@ import { OtpService } from '../otp/otp.service';
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(User) 
+    private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
     private readonly otpService: OtpService,
   ) { }

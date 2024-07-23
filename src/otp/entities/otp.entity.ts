@@ -1,14 +1,14 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
+@Entity()
+export class Otp {
+    @PrimaryGeneratedColumn()
+    id: number;
 
-@Schema()
-export class Otp extends Model<Otp> {
-    @Prop() 
+    @Column()
     userId: number;
 
-    @Prop()
+    @Column()
     otp: string;
-}
 
-export const OtpSchema = SchemaFactory.createForClass(Otp);
+}

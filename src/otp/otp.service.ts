@@ -1,14 +1,16 @@
 import { Injectable, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Otp } from './entities/otp.entity';
 import { CreateOtpDto } from './dto/create-otp.dto';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 
 @Injectable()
 export class OtpService {
   private readonly logger = new Logger(OtpService.name);
 
-  constructor(@InjectModel(Otp.name) private readonly otpModel: Model<Otp>) { }
+  constructor(
+    @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
+  ) { }
 
   async findOtpByUserIdAndOtp(userId: number, otp: string): Promise<Otp | null> {
     if (!userId) {
@@ -16,21 +18,22 @@ export class OtpService {
       throw new Error('userId is undefined');
     }
     this.logger.log(`Finding OTP for userId: ${userId}`);
-    return await this.otpModel.findOne({ where: { userId, otp } });
+    return await this.otpRepository.findOne({ where: { userId, otp } });
   }
 
-  async saveOtp(createOtpDto: CreateOtpDto) {
+  async saveOtp(createOtpDto: CreateOtpDto): Promise<Otp> {
     this.logger.log(`Saving OTP for userId: ${createOtpDto.userId}`);
-    return await this.otpModel.create(createOtpDto);
+    const newOtp = this.otpRepository.create(createOtpDto);
+    return await this.otpRepository.save(newOtp);
   }
 
   async remove(id: number): Promise<void> {
-    const otp = await this.otpModel.findById(id);
+    const otp = await this.otpRepository.findOne({where:{id}});
     if (!otp) {
       this.logger.error('OTP not found');
       throw new NotFoundException('OTP not found');
     }
-    await otp.destroy();
+    await this.otpRepository.remove(otp);
     this.logger.log(`OTP with id ${id} removed`);
   }
 
